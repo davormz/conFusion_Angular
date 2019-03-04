@@ -1,5 +1,14 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Dish } from '../shared/dish';
+import { Comment } from '../shared/comment';
+import { DishService } from '../services/dish.service';
+
+import { Params, ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dishdetail',
@@ -8,12 +17,45 @@ import { Dish } from '../shared/dish';
 })
 export class DishdetailComponent implements OnInit {
 
-  @Input()
   dish: Dish;
+  dishIds: string[];
+  prev: string;
+  next: string;
+  comment: Comment;
+  commentForm: FormGroup;
 
-  constructor() { }
+  constructor(private dishservice: DishService,
+    private route: ActivatedRoute,
+    private location: Location,
+    private fb: FormBuilder) {
+      this.createForm();
+  }
+
+  createForm(){
+      this.commentForm = this.fb.group({
+        author: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(25)] ],
+        rating: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(25)] ],
+        comment: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(140)] ]
+      });
+  }
 
   ngOnInit() {
+    this.dishservice.getDishIds().subscribe(dishIds => this.dishIds = dishIds);
+    this.route.params.pipe(switchMap((params: Params) => this.dishservice.getDish(params['id'])))
+      .subscribe(dish => { this.dish = dish; this.setPrevNext(dish.id); });
+  }
+
+  setPrevNext(dishId: string) {
+    const index = this.dishIds.indexOf(dishId);
+    this.prev = this.dishIds[(this.dishIds.length + index - 1) % this.dishIds.length];
+    this.next = this.dishIds[(this.dishIds.length + index + 1) % this.dishIds.length];
+  }
+
+  goBack(): void {
+    this.location.back();
+  }
+
+  onSubmit() {
   }
 
 }
